@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>QR Generator</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        h2 {
+            margin-top: 50px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            background: #ff7a18;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            color: black;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        input {
+            width: 90%;
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        #result img {
+            margin-top: 10px;
+            border-radius: 10px;
+        }
+
+        #countdown {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: green;
+        }
+
+        .expired {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>QR Code Generator</h2>
+
+    <button onclick="openModal()">Create QR</button>
+
+    <div id="modal" class="modal">
+        <h3>Create QR</h3>
+
+        <form id="qrForm">
+            <input type="text" name="name" placeholder="Event Name" required>
+            <input type="date" name="date" required>
+            <input type="time" name="start_time" required>
+            <input type="time" name="end_time" required>
+
+            <button type="submit">Generate</button>
+            <button type="button" onclick="closeModal()">Close</button>
+        </form>
+
+        <div id="result"></div>
+        <div id="countdown"></div>
+    </div>
+
+    <script>
+        function openModal() {
+            document.getElementById("modal").style.display = "block";
+        }
+
+        function closeModal() {
+            document.getElementById("modal").style.display = "none";
+        }
+
+        let countdownInterval;
+
+        document.getElementById("qrForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const params = new URLSearchParams(formData);
+
+            const date = formData.get("date");
+            const start = formData.get("start_time");
+            const end = formData.get("end_time");
+
+            const startTime = new Date(`${date}T${start}`);
+            const endTime = new Date(`${date}T${end}`);
+
+            // 🔐 IMPORTANT: Add your admin token here
+            const token = localStorage.getItem("token"); // or paste manually for testing
+            console.log("TOKEN:", token);
+
+            try {
+                const response = await fetch("/qr/create?" + params.toString(), {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                console.log("API Response:", data); // debug
+
+                if (!response.ok) {
+                    throw new Error(data.detail || "API Error");
+                }
+
+                if (data.qr_image) {
+                    document.getElementById("result").innerHTML = `
+                    <p>${data.message}</p>
+                    <img src="${data.qr_image}" width="200"/>
+                    <p style="font-size:12px;word-break:break-all;">
+                        ${data.scan_url}
+                    </p>
+                `;
+
+                    startCountdown(startTime, endTime);
+
+                } else {
+                    document.getElementById("result").innerHTML =
+                        `<p>${data.detail || "Something went wrong"}</p>`;
+                }
+
+            } catch (error) {
+                console.error(error);
+
+                document.getElementById("result").innerHTML =
+                    `<p style="color:red;">${error.message}</p>`;
+            }
+        });
+
+        function startCountdown(startTime, endTime) {
+            clearInterval(countdownInterval);
+
+            document.getElementById("countdown").classList.remove("expired");
+
+            countdownInterval = setInterval(() => {
+                const now = new Date();
+                let message = "";
+
+                if (now < startTime) {
+                    const diff = startTime - now;
+                    message = "⏳ Starts in: " + formatTime(diff);
+                } else if (now >= startTime && now <= endTime) {
+                    const diff = endTime - now;
+                    message = "🔥 Ends in: " + formatTime(diff);
+                } else {
+                    message = "❌ QR Expired";
+                    document.getElementById("countdown").classList.add("expired");
+                    clearInterval(countdownInterval);
+                }
+
+                document.getElementById("countdown").innerText = message;
+
+            }, 1000);
+        }
+
+        function formatTime(ms) {
+            let totalSeconds = Math.floor(ms / 1000);
+            let hours = Math.floor(totalSeconds / 3600);
+            let minutes = Math.floor((totalSeconds % 3600) / 60);
+            let seconds = totalSeconds % 60;
+
+            return `${hours}h ${minutes}m ${seconds}s`;
+        }
+    </script>
+
+</body>
+
+</html>
+
+<script src="/static/js/auth.js"></script>
+<script src="/static/js/qr.js"></script>
+
+<script>
+    checkAuth();   // 🔐 protect page
+</script>
