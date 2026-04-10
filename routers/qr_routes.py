@@ -21,7 +21,7 @@ from utils.role_checker import require_roles
 router = APIRouter(prefix="/qr", tags=["QR"])
 
 
-@router.get("/create-page", response_class=HTMLResponse)
+@router.get("/create-pageeee", response_class=HTMLResponse)
 def create_qr_page(request: Request):
     return templates.TemplateResponse("qr_form.html", {"request": request})
 
