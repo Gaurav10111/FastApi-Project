@@ -39,7 +39,7 @@ def signup(user: UserSignup, db: Session = Depends(get_db)):
 
     return {"message": "User created"}
 
-@router.post("/login")
+@router.post("/loginnnn")
 def login(user: UserLogin, db: Session = Depends(get_db)):
 
     db_user = db.query(User).filter(User.email == user.email).first()
