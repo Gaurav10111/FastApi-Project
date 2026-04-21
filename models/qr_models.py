@@ -26,4 +26,4 @@ class QRScan(Base):
     scanned_at_utc = Column(DateTime, default=datetime.utcnow)
     ip_address = Column(String(100))
     user_agent = Column(String(255))
-    user_name = Column(String)
+    user_name = Column(String(100))
